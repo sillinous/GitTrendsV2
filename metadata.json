@@ -1,0 +1,5 @@
+{
+  "name": "GitTrends AI",
+  "description": "An intelligent dashboard for discovering trending GitHub repositories, powered by Gemini 3 Flash for deep repository analysis and tech stack insights.",
+  "requestFramePermissions": []
+}
