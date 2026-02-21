@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { Repository, AnalysisResult, AiProvider } from "../types";
+import { Repository, AnalysisResult, AiProvider, BlogPost } from "../types";
 
 // Initialize the Gemini client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -137,6 +137,62 @@ const analyzeWithOpenRouter = async (repo: Repository): Promise<AnalysisResult> 
     const data = await response.json();
     const content = data.choices[0].message.content;
     return JSON.parse(content) as AnalysisResult;
+  });
+};
+
+export const generateBlogPost = async (repo: Repository, analysis: AnalysisResult | null): Promise<BlogPost> => {
+  return retryOperation(async () => {
+    const prompt = `
+      Create a high-quality, engaging blog post about the following GitHub repository:
+      Repository: ${repo.full_name}
+      Description: ${repo.description}
+      Language: ${repo.language}
+      Topics: ${repo.topics.join(', ')}
+      ${analysis ? `AI Analysis Summary: ${analysis.summary}` : ''}
+      ${analysis ? `Key Use Cases: ${analysis.useCases.join(', ')}` : ''}
+      ${analysis ? `Tech Stack Insights: ${analysis.techStackAnalysis}` : ''}
+
+      The blog post should be professional yet exciting, suitable for a tech audience.
+      It should include:
+      1. A catchy title.
+      2. An introduction explaining the problem it solves.
+      3. A deep dive into features and tech stack.
+      4. Potential use cases.
+      5. A conclusion with a call to action to check out the repo.
+
+      Response must be a JSON object with:
+      1. "title": (string)
+      2. "content": (string) Markdown formatted content.
+      3. "tags": (array of strings) 3-5 relevant tags.
+      4. "summary": (string) 1-2 sentence summary for social media.
+      5. "author": (string) "GitTrends AI Assistant"
+      6. "date": (string) current date in YYYY-MM-DD format.
+    `;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        systemInstruction: "You are a professional tech blogger and developer advocate.",
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            content: { type: Type.STRING },
+            tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+            summary: { type: Type.STRING },
+            author: { type: Type.STRING },
+            date: { type: Type.STRING }
+          },
+          required: ["title", "content", "tags", "summary", "author", "date"]
+        }
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("No response from Gemini");
+    return JSON.parse(text) as BlogPost;
   });
 };
 

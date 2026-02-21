@@ -36,9 +36,11 @@ export const fetchTrendingRepos = async (filters: SearchFilters): Promise<Search
 
     const encodedQuery = encodeURIComponent(q);
     const page = filters.page || 1;
+    const sort = filters.sort || 'stars';
+    const order = filters.order || 'desc';
     
     // Sort and order must be separate query parameters
-    const response = await fetch(`https://api.github.com/search/repositories?q=${encodedQuery}&sort=stars&order=desc&per_page=12&page=${page}`);
+    const response = await fetch(`https://api.github.com/search/repositories?q=${encodedQuery}&sort=${sort}&order=${order}&per_page=12&page=${page}`);
 
     if (!response.ok) {
         if (response.status === 403 || response.status === 429) {

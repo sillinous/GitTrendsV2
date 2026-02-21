@@ -2,11 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/Header';
 import { RepoCard } from './components/RepoCard';
 import { AnalysisModal } from './components/AnalysisModal';
-import { Repository, SearchFilters, AnalysisResult } from './types';
+import { Repository, SearchFilters, AnalysisResult, BlogPost } from './types';
 import { DEFAULT_FILTERS } from './constants';
 import { fetchTrendingRepos } from './services/githubService';
-import { analyzeRepository } from './services/aiService';
-import { RefreshCw, AlertTriangle, Search, ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react';
+import { analyzeRepository, generateBlogPost } from './services/aiService';
+import { RefreshCw, AlertTriangle, Search, ChevronLeft, ChevronRight, LayoutGrid, FileText } from 'lucide-react';
+import { BlogPostModal } from './components/BlogPostModal';
 
 const App: React.FC = () => {
   const [repos, setRepos] = useState<Repository[]>([]);
@@ -19,6 +20,10 @@ const App: React.FC = () => {
   const [selectedRepo, setSelectedRepo] = useState<Repository | null>(null);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
+  const [blogPost, setBlogPost] = useState<BlogPost | null>(null);
+  const [isGeneratingBlog, setIsGeneratingBlog] = useState(false);
 
   const loadRepos = useCallback(async () => {
     setIsLoading(true);
@@ -34,9 +39,15 @@ const App: React.FC = () => {
     }
   }, [filters]);
 
+  // Initial load
   useEffect(() => {
     loadRepos();
   }, []); 
+
+  // Auto-reload when specific filters change
+  useEffect(() => {
+    loadRepos();
+  }, [filters.period, filters.sort, filters.order, filters.page, loadRepos]);
 
   const handleFilterChange = (newFilters: Partial<SearchFilters>) => {
     setFilters(prev => {
@@ -54,7 +65,7 @@ const App: React.FC = () => {
   const handlePageChange = (newPage: number) => {
     if (newPage < 1) return;
     setFilters(prev => ({ ...prev, page: newPage }));
-    setTimeout(loadRepos, 0); 
+    // useEffect will handle the reload
   };
 
   const handleAnalyze = async (repo: Repository) => {
@@ -69,6 +80,22 @@ const App: React.FC = () => {
       console.error(e);
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handleGenerateBlog = async (repo: Repository) => {
+    setSelectedRepo(repo);
+    setBlogPost(null);
+    setIsBlogModalOpen(true);
+    setIsGeneratingBlog(true);
+    try {
+      // If we already have analysis, use it for better blog post
+      const post = await generateBlogPost(repo, analysisResult);
+      setBlogPost(post);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsGeneratingBlog(false);
     }
   };
 
@@ -165,7 +192,7 @@ const App: React.FC = () => {
                   <button 
                      onClick={() => {
                        setFilters(DEFAULT_FILTERS); 
-                       setTimeout(loadRepos, 100);
+                       // No timeout needed as useEffect handles it, but setting default filter will trigger it
                      }}
                      className="mt-6 text-accent-blue font-bold uppercase tracking-widest hover:underline"
                   >
@@ -212,6 +239,15 @@ const App: React.FC = () => {
         repo={selectedRepo}
         analysis={analysisResult}
         isLoading={isAnalyzing}
+        onGenerateBlog={() => selectedRepo && handleGenerateBlog(selectedRepo)}
+      />
+
+      <BlogPostModal
+        isOpen={isBlogModalOpen}
+        onClose={() => setIsBlogModalOpen(false)}
+        repo={selectedRepo}
+        post={blogPost}
+        isLoading={isGeneratingBlog}
       />
     </div>
   );

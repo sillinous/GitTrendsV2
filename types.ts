@@ -36,6 +36,17 @@ export interface SearchFilters {
   query: string;
   page: number;
   provider: AiProvider;
+  sort: 'stars' | 'forks' | 'updated';
+  order: 'asc' | 'desc';
+}
+
+export interface BlogPost {
+  title: string;
+  content: string;
+  tags: string[];
+  summary: string;
+  author: string;
+  date: string;
 }
 
 export interface SearchResult {

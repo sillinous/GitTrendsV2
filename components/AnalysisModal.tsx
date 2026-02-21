@@ -1,6 +1,6 @@
 import React from 'react';
 import { AnalysisResult, Repository } from '../types';
-import { X, Sparkles, AlertTriangle, Code2, Lightbulb, Rocket, DollarSign, ArrowUpRight, ShieldCheck, Activity, Users, Target } from 'lucide-react';
+import { X, Sparkles, AlertTriangle, Code2, Lightbulb, Rocket, DollarSign, ArrowUpRight, ShieldCheck, Activity, Users, Target, FileText } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 interface AnalysisModalProps {
@@ -9,9 +9,10 @@ interface AnalysisModalProps {
   isOpen: boolean;
   onClose: () => void;
   isLoading: boolean;
+  onGenerateBlog?: () => void;
 }
 
-export const AnalysisModal: React.FC<AnalysisModalProps> = ({ repo, analysis, isOpen, onClose, isLoading }) => {
+export const AnalysisModal: React.FC<AnalysisModalProps> = ({ repo, analysis, isOpen, onClose, isLoading, onGenerateBlog }) => {
   if (!isOpen) return null;
 
   const hypeData = analysis ? [
@@ -233,8 +234,18 @@ export const AnalysisModal: React.FC<AnalysisModalProps> = ({ repo, analysis, is
         </div>
 
         {/* Footer info */}
-        <div className="p-6 bg-black/40 border-t border-white/5 flex justify-center">
+        <div className="p-6 bg-black/40 border-t border-white/5 flex justify-between items-center">
           <p className="text-[10px] font-black text-zinc-700 uppercase tracking-[0.4em]">Proprietary Assessment Tool • Encrypted Session</p>
+          
+          {analysis && onGenerateBlog && (
+            <button 
+              onClick={onGenerateBlog}
+              className="flex items-center space-x-2 px-6 py-2 bg-accent-orange/10 hover:bg-accent-orange/20 text-accent-orange rounded-xl border border-accent-orange/20 transition-all font-bold text-[10px] uppercase tracking-widest"
+            >
+              <FileText size={14} />
+              <span>Generate Blog Post</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

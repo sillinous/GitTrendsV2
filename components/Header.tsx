@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Github, GitBranch, Cpu, ChevronDown } from 'lucide-react';
+import { Search, Github, GitBranch, Cpu, ChevronDown, ListFilter } from 'lucide-react';
 import { SearchFilters } from '../types';
 import { POPULAR_LANGUAGES, AI_PROVIDERS } from '../constants';
 
@@ -67,13 +67,24 @@ export const Header: React.FC<HeaderProps> = ({ filters, onFilterChange, onSearc
             <ChevronDown size={12} className="text-zinc-500 ml-1" />
           </div>
 
+          <div className="flex items-center bg-surface-lighter border border-white/5 rounded-2xl px-3 py-2 group">
+             <ListFilter size={14} className="text-zinc-500 mr-2" />
+             <select
+               value={filters.sort || 'stars'}
+               onChange={(e) => onFilterChange({ sort: e.target.value as any })}
+               className="bg-transparent border-none text-zinc-400 text-xs font-medium outline-none cursor-pointer appearance-none pr-1"
+             >
+               <option value="stars" className="bg-surface text-white">Stars</option>
+               <option value="forks" className="bg-surface text-white">Forks</option>
+               <option value="updated" className="bg-surface text-white">Updated</option>
+             </select>
+             <ChevronDown size={12} className="text-zinc-500 ml-1" />
+          </div>
+
           <div className="flex items-center space-x-2">
             <select
               value={filters.period}
-              onChange={(e) => {
-                onFilterChange({ period: e.target.value as any });
-                setTimeout(onSearch, 0);
-              }}
+              onChange={(e) => onFilterChange({ period: e.target.value as any })}
               className="bg-surface-lighter border border-white/5 text-zinc-400 text-xs font-semibold rounded-2xl px-4 py-2.5 hover:text-white transition-colors cursor-pointer outline-none"
             >
               <option value="daily">Daily</option>

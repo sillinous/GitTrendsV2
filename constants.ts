@@ -5,7 +5,9 @@ export const DEFAULT_FILTERS: SearchFilters = {
   period: 'weekly',
   query: '',
   page: 1,
-  provider: 'gemini'
+  provider: 'gemini',
+  sort: 'stars',
+  order: 'desc'
 };
 
 export const POPULAR_LANGUAGES = [
