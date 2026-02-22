@@ -49,6 +49,15 @@ export interface BlogPost {
   date: string;
 }
 
+export interface Task {
+  id: string;
+  repoId: number;
+  repoName: string;
+  repoFullName: string;
+  status: 'pending' | 'completed';
+  createdAt: string;
+}
+
 export interface SearchResult {
   items: Repository[];
   total_count: number;

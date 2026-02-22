@@ -2,12 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from './components/Header';
 import { RepoCard } from './components/RepoCard';
 import { AnalysisModal } from './components/AnalysisModal';
-import { Repository, SearchFilters, AnalysisResult, BlogPost } from './types';
+import { Repository, SearchFilters, AnalysisResult, BlogPost, Task } from './types';
 import { DEFAULT_FILTERS } from './constants';
 import { fetchTrendingRepos } from './services/githubService';
 import { analyzeRepository, generateBlogPost } from './services/aiService';
-import { RefreshCw, AlertTriangle, Search, ChevronLeft, ChevronRight, LayoutGrid, FileText } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Search, ChevronLeft, ChevronRight, LayoutGrid, FileText, ListTodo, GitBranch } from 'lucide-react';
 import { BlogPostModal } from './components/BlogPostModal';
+import { TaskSidebar } from './components/TaskSidebar';
+import { IntegrationModal } from './components/IntegrationModal';
 
 const App: React.FC = () => {
   const [repos, setRepos] = useState<Repository[]>([]);
@@ -24,6 +26,27 @@ const App: React.FC = () => {
   const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
   const [blogPost, setBlogPost] = useState<BlogPost | null>(null);
   const [isGeneratingBlog, setIsGeneratingBlog] = useState(false);
+
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [isTaskSidebarOpen, setIsTaskSidebarOpen] = useState(false);
+  const [isIntegrationModalOpen, setIsIntegrationModalOpen] = useState(false);
+
+  // Load tasks from localStorage
+  useEffect(() => {
+    const savedTasks = localStorage.getItem('gittrends_tasks');
+    if (savedTasks) {
+      try {
+        setTasks(JSON.parse(savedTasks));
+      } catch (e) {
+        console.error("Failed to parse tasks", e);
+      }
+    }
+  }, []);
+
+  // Save tasks to localStorage
+  useEffect(() => {
+    localStorage.setItem('gittrends_tasks', JSON.stringify(tasks));
+  }, [tasks]);
 
   const loadRepos = useCallback(async () => {
     setIsLoading(true);
@@ -97,6 +120,31 @@ const App: React.FC = () => {
     } finally {
       setIsGeneratingBlog(false);
     }
+  };
+
+  const handleAddTask = (repo: Repository) => {
+    const newTask: Task = {
+      id: Math.random().toString(36).substring(7),
+      repoId: repo.id,
+      repoName: repo.name,
+      repoFullName: repo.full_name,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+    setTasks(prev => [newTask, ...prev]);
+    setIsTaskSidebarOpen(true);
+  };
+
+  const handleToggleTask = (taskId: string) => {
+    setTasks(prev => prev.map(task => 
+      task.id === taskId 
+        ? { ...task, status: task.status === 'completed' ? 'pending' : 'completed' } 
+        : task
+    ));
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    setTasks(prev => prev.filter(task => task.id !== taskId));
   };
 
   const itemsPerPage = 12;
@@ -183,6 +231,8 @@ const App: React.FC = () => {
                     key={repo.id} 
                     repo={repo} 
                     onAnalyze={handleAnalyze} 
+                    onAddTask={handleAddTask}
+                    isTasked={tasks.some(t => t.repoId === repo.id)}
                   />
                 ))
               ) : (
@@ -248,7 +298,89 @@ const App: React.FC = () => {
         repo={selectedRepo}
         post={blogPost}
         isLoading={isGeneratingBlog}
+        analysis={analysisResult}
       />
+
+      <TaskSidebar 
+        tasks={tasks}
+        isOpen={isTaskSidebarOpen}
+        onClose={() => setIsTaskSidebarOpen(false)}
+        onToggleTask={handleToggleTask}
+        onDeleteTask={handleDeleteTask}
+      />
+
+      <IntegrationModal 
+        isOpen={isIntegrationModalOpen}
+        onClose={() => setIsIntegrationModalOpen(false)}
+      />
+
+      {/* Task Toggle Button */}
+      <button 
+        onClick={() => setIsTaskSidebarOpen(true)}
+        className="fixed bottom-8 right-8 w-16 h-16 bg-accent-blue text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-40 group"
+      >
+        <ListTodo size={28} />
+        {tasks.filter(t => t.status === 'pending').length > 0 && (
+          <span className="absolute -top-1 -right-1 w-6 h-6 bg-accent-red text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-background">
+            {tasks.filter(t => t.status === 'pending').length}
+          </span>
+        )}
+        <div className="absolute right-full mr-4 px-4 py-2 bg-surface border border-white/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+          <span className="text-xs font-black uppercase tracking-widest">Task Terminal</span>
+        </div>
+      </button>
+
+      {/* Connection Guide Footer */}
+      <footer className="border-t border-white/5 bg-black/40 py-12 mt-20">
+        <div className="container mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
+            <div>
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-8 h-8 flex items-center justify-center bg-white rounded-lg">
+                  <GitBranch className="text-black" size={16} />
+                </div>
+                <span className="text-lg font-black text-white italic tracking-tighter">GitTrends AI</span>
+              </div>
+              <p className="text-zinc-500 text-sm max-w-sm leading-relaxed">
+                Autonomous repository intelligence and content synthesis. Mapping the evolution of open-source assets in real-time.
+              </p>
+            </div>
+            
+            <div className="bg-surface border border-white/5 rounded-3xl p-6">
+              <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em] mb-4">Connection Guide</h3>
+              <div className="space-y-4">
+                <div className="p-3 bg-black/20 rounded-xl border border-white/5">
+                  <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">App Endpoint</p>
+                  <code className="text-[10px] text-accent-blue break-all">POST https://ais-dev-qv77p7ub3mlkzosr6z6itu-66557052969.us-east1.run.app/api/import</code>
+                </div>
+                <div className="p-3 bg-black/20 rounded-xl border border-white/5">
+                  <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">Required Headers</p>
+                  <div className="space-y-1">
+                    <code className="block text-[9px] text-zinc-300">Content-Type: application/json</code>
+                    <code className="block text-[9px] text-zinc-300">x-api-key: &lt;YOUR_IMPORT_API_KEY&gt;</code>
+                  </div>
+                </div>
+                <p className="text-[10px] text-zinc-500 italic">
+                  To secure your endpoint, set the <code className="text-zinc-400">IMPORT_API_KEY</code> environment variable in AI Studio.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-12 pt-8 border-t border-white/5 flex justify-between items-center">
+            <p className="text-[10px] font-black text-zinc-700 uppercase tracking-[0.4em]">© 2026 GitTrends Intelligence Systems</p>
+            <div className="flex space-x-6">
+              <button 
+                onClick={() => setIsIntegrationModalOpen(true)}
+                className="text-[10px] font-black text-zinc-700 uppercase tracking-[0.4em] cursor-pointer hover:text-white transition-colors"
+              >
+                Integration Guide
+              </button>
+              <span className="text-[10px] font-black text-zinc-700 uppercase tracking-[0.4em] cursor-pointer hover:text-zinc-500 transition-colors">Documentation</span>
+              <span className="text-[10px] font-black text-zinc-700 uppercase tracking-[0.4em] cursor-pointer hover:text-zinc-500 transition-colors">API Status</span>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

@@ -1,18 +1,21 @@
 import React from 'react';
-import { BlogPost, Repository } from '../types';
-import { X, FileText, Calendar, User, Tag, Download, Copy, Check } from 'lucide-react';
+import { BlogPost, Repository, AnalysisResult } from '../types';
+import { X, FileText, Calendar, User, Tag, Download, Copy, Check, Share2, Loader2 } from 'lucide-react';
 import Markdown from 'react-markdown';
+import { exportToExternalBlog, createPostExportPayload } from '../services/exportService';
 
 interface BlogPostModalProps {
   repo: Repository | null;
   post: BlogPost | null;
+  analysis: AnalysisResult | null;
   isOpen: boolean;
   onClose: () => void;
   isLoading: boolean;
 }
 
-export const BlogPostModal: React.FC<BlogPostModalProps> = ({ repo, post, isOpen, onClose, isLoading }) => {
+export const BlogPostModal: React.FC<BlogPostModalProps> = ({ repo, post, analysis, isOpen, onClose, isLoading }) => {
   const [copied, setCopied] = React.useState(false);
+  const [isExporting, setIsExporting] = React.useState(false);
 
   if (!isOpen) return null;
 
@@ -32,6 +35,22 @@ export const BlogPostModal: React.FC<BlogPostModalProps> = ({ repo, post, isOpen
       element.download = `${repo?.name || 'blog-post'}.md`;
       document.body.appendChild(element);
       element.click();
+    }
+  };
+
+  const handleExportToBlog = async () => {
+    if (!post || !repo) return;
+    
+    setIsExporting(true);
+    
+    try {
+      const payload = createPostExportPayload(repo, post, analysis);
+      await exportToExternalBlog(payload);
+      alert('Successfully exported to your Blog!');
+    } catch (error) {
+      alert(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -122,6 +141,14 @@ export const BlogPostModal: React.FC<BlogPostModalProps> = ({ repo, post, isOpen
               AI Generated Content • Review Before Publishing
             </div>
             <div className="flex space-x-4">
+              <button 
+                onClick={handleExportToBlog}
+                disabled={isExporting}
+                className="flex items-center space-x-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl border border-white/10 transition-all font-bold text-xs uppercase tracking-widest disabled:opacity-50"
+              >
+                {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
+                <span>{isExporting ? 'Exporting...' : 'Export to Blog'}</span>
+              </button>
               <button 
                 onClick={handleCopy}
                 className="flex items-center space-x-2 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-2xl border border-white/10 transition-all font-bold text-xs uppercase tracking-widest"

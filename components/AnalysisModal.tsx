@@ -1,7 +1,8 @@
 import React from 'react';
 import { AnalysisResult, Repository } from '../types';
-import { X, Sparkles, AlertTriangle, Code2, Lightbulb, Rocket, DollarSign, ArrowUpRight, ShieldCheck, Activity, Users, Target, FileText } from 'lucide-react';
+import { X, Sparkles, AlertTriangle, Code2, Lightbulb, Rocket, DollarSign, ArrowUpRight, ShieldCheck, Activity, Users, Target, FileText, Share2, Loader2 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { exportToExternalBlog, createRepoExportPayload } from '../services/exportService';
 
 interface AnalysisModalProps {
   repo: Repository | null;
@@ -13,7 +14,23 @@ interface AnalysisModalProps {
 }
 
 export const AnalysisModal: React.FC<AnalysisModalProps> = ({ repo, analysis, isOpen, onClose, isLoading, onGenerateBlog }) => {
+  const [isExporting, setIsExporting] = React.useState(false);
+
   if (!isOpen) return null;
+
+  const handleExport = async () => {
+    if (!repo || !analysis) return;
+    setIsExporting(true);
+    try {
+      const payload = createRepoExportPayload(repo, analysis);
+      await exportToExternalBlog(payload);
+      alert('Analysis exported successfully!');
+    } catch (error) {
+      alert(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const hypeData = analysis ? [
     { name: 'Hype', value: analysis.hypeScore },
@@ -237,15 +254,17 @@ export const AnalysisModal: React.FC<AnalysisModalProps> = ({ repo, analysis, is
         <div className="p-6 bg-black/40 border-t border-white/5 flex justify-between items-center">
           <p className="text-[10px] font-black text-zinc-700 uppercase tracking-[0.4em]">Proprietary Assessment Tool • Encrypted Session</p>
           
-          {analysis && onGenerateBlog && (
-            <button 
-              onClick={onGenerateBlog}
-              className="flex items-center space-x-2 px-6 py-2 bg-accent-orange/10 hover:bg-accent-orange/20 text-accent-orange rounded-xl border border-accent-orange/20 transition-all font-bold text-[10px] uppercase tracking-widest"
-            >
-              <FileText size={14} />
-              <span>Generate Blog Post</span>
-            </button>
-          )}
+          <div className="flex items-center space-x-4">
+            {analysis && onGenerateBlog && (
+              <button 
+                onClick={onGenerateBlog}
+                className="flex items-center space-x-2 px-6 py-2 bg-accent-orange/10 hover:bg-accent-orange/20 text-accent-orange rounded-xl border border-accent-orange/20 transition-all font-bold text-[10px] uppercase tracking-widest"
+              >
+                <FileText size={14} />
+                <span>Generate Blog Post</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
